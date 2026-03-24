@@ -1,0 +1,108 @@
+import mysql.connector
+from datetime import date
+
+# Database connection
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="your_password",
+    database="library_db"
+)
+
+cursor = conn.cursor()
+
+# Add Book
+def add_book():
+    title = input("Enter book title: ")
+    author = input("Enter author name: ")
+    quantity = int(input("Enter quantity: "))
+
+    query = "INSERT INTO books (title, author, quantity) VALUES (%s, %s, %s)"
+    cursor.execute(query, (title, author, quantity))
+    conn.commit()
+    print("✅ Book added successfully!")
+
+# View Books
+def view_books():
+    cursor.execute("SELECT * FROM books")
+    books = cursor.fetchall()
+
+    print("\n📚 Available Books:")
+    for book in books:
+        print(book)
+
+# Issue Book
+def issue_book():
+    book_id = int(input("Enter book ID to issue: "))
+
+    cursor.execute("SELECT quantity FROM books WHERE book_id=%s", (book_id,))
+    result = cursor.fetchone()
+
+    if result and result[0] > 0:
+        cursor.execute(
+            "INSERT INTO transactions (book_id, issue_date) VALUES (%s, %s)",
+            (book_id, date.today())
+        )
+        cursor.execute(
+            "UPDATE books SET quantity = quantity - 1 WHERE book_id=%s",
+            (book_id,)
+        )
+        conn.commit()
+        print("📤 Book issued successfully!")
+    else:
+        print("❌ Book not available!")
+
+# Return Book
+def return_book():
+    book_id = int(input("Enter book ID to return: "))
+
+    cursor.execute(
+        "UPDATE transactions SET return_date=%s WHERE book_id=%s AND return_date IS NULL",
+        (date.today(), book_id)
+    )
+    cursor.execute(
+        "UPDATE books SET quantity = quantity + 1 WHERE book_id=%s",
+        (book_id,)
+    )
+    conn.commit()
+    print("📥 Book returned successfully!")
+
+# Delete Book
+def delete_book():
+    book_id = int(input("Enter book ID to delete: "))
+
+    cursor.execute("DELETE FROM books WHERE book_id=%s", (book_id,))
+    conn.commit()
+    print("🗑️ Book deleted!")
+
+# Menu
+def menu():
+    while True:
+        print("\n===== 📚 Library Management System =====")
+        print("1. Add Book")
+        print("2. View Books")
+        print("3. Issue Book")
+        print("4. Return Book")
+        print("5. Delete Book")
+        print("6. Exit")
+
+        choice = input("Enter choice: ")
+
+        if choice == "1":
+            add_book()
+        elif choice == "2":
+            view_books()
+        elif choice == "3":
+            issue_book()
+        elif choice == "4":
+            return_book()
+        elif choice == "5":
+            delete_book()
+        elif choice == "6":
+            print("👋 Exiting...")
+            break
+        else:
+            print("❌ Invalid choice!")
+
+# Run program
+menu()
